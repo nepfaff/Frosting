@@ -233,6 +233,15 @@ cd ../
 <details>
 <summary><span style="font-weight: bold;">Click here to see content.</span></summary>
 
+### Preparing data with COLMAP
+
+```bash
+colmap automatic_reconstructor --workspace_path $DATASET_PATH \
+--image_path $DATASET_PATH/images --camera_model PINHOLE
+```
+Note that we require `PINHOLE` camera model. We can stop COLMAP after the sparse
+reconstruction phase.
+
 ### Training from scratch
 
 You can run the following single script to optimize a full Gaussian Frosting model from scratch using a COLMAP dataset:
