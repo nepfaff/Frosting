@@ -134,4 +134,3 @@ yacs==0.1.8
 zipp==3.17.0
 # torch==2.5.1
 torch==2.3.0
-https://dl.fbaipublicfiles.com/pytorch3d/packaging/wheels/py310_cu118_pyt201/pytorch3d-0.7.4-cp310-cp310-linux_x86_64.whl

@@ -200,19 +200,24 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-3. Install the 3D Gaussian Splatting rasterizer:
+3. Install pytorch3d:
+```bash
+pip install --no-index --no-cache-dir pytorch3d -f https://dl.fbaipublicfiles.com/pytorch3d/packaging/wheels/py310_cu121_pyt231/download.html --upgrade
+```
+
+4. Install the 3D Gaussian Splatting rasterizer:
 ```bash
 cd gaussian_splatting/submodules/diff-gaussian-rasterization/
 pip install -e .
 ```
 
-4. Install simple-knn:
+5. Install simple-knn:
 ```bash
 cd ../simple-knn/
 pip install -e .
 ```
 
-5. Clone and install Nvdiffrast:
+6. Clone and install Nvdiffrast:
 ```bash
 cd ../../../
 git clone https://github.com/NVlabs/nvdiffrast
