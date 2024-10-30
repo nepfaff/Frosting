@@ -184,6 +184,45 @@ cd ../
 
 </details>
 
+## Installation without Conda
+
+<details>
+<summary><span style="font-weight: bold;">Click here to see content.</span></summary>
+
+1. Create and activate a virtual env:
+```bash
+python -m venv .venv
+. .venv/bin/activate
+```
+
+2. Install pip dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Install the 3D Gaussian Splatting rasterizer:
+```bash
+cd gaussian_splatting/submodules/diff-gaussian-rasterization/
+pip install -e .
+```
+
+4. Install simple-knn:
+```bash
+cd ../simple-knn/
+pip install -e .
+```
+
+5. Clone and install Nvdiffrast:
+```bash
+cd ../../../
+git clone https://github.com/NVlabs/nvdiffrast
+cd nvdiffrast
+pip install -e .
+cd ../
+```
+
+</details>
+
 ## Quick Start
 
 <details>
