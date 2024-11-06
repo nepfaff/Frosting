@@ -134,3 +134,5 @@ yacs==0.1.8
 zipp==3.17.0
 # torch==2.5.1
 torch==2.3.0
+opencv-pyton==4.10.0.84
+torchvision==0.18.0

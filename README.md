@@ -394,6 +394,8 @@ Please first install a recent version of COLMAP (ideally CUDA-powered) and make 
 python gaussian_splatting/convert.py -s <location>
 ```
 
+NOTE: Use `convert_with_alpha.py` instead if you want to keep the image alpha channels.
+
 Sometimes COLMAP fails to reconstruct all images into the same model and hence produces multiple sub-models. The smaller sub-models generally contain only a few images. However, by default, the script `convert.py` will apply Image Undistortion only on the first sub-model, which may contain only a few images.
 
 If this is the case, a simple solution is to keep only the largest sub-model and discard the others. To do this, open the source directory containing your input images, then open the sub-directory `<Source_directory>/distorted/sparse/`. You should see several sub-directories named `0/`, `1/`, etc., each containing a sub-model. Remove all sub-directories except the one containing the largest files, and rename it to `0/`. Then, run the script `convert.py` one more time but skip the matching process:

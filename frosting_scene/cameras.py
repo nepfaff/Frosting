@@ -97,6 +97,7 @@ def load_gs_cameras(source_path, gs_output_path, image_resolution=1,
         name = camera_transform['img_name']
         image_path = os.path.join(image_dir,  name + extension)
         
+        gt_alpha_mask = None
         if load_gt_images:
             image = Image.open(image_path)
             if white_background:
@@ -105,6 +106,11 @@ def load_gs_cameras(source_path, gs_output_path, image_resolution=1,
                 norm_data = im_data / 255.0
                 arr = norm_data[:,:,:3] * norm_data[:, :, 3:4] + bg * (1 - norm_data[:, :, 3:4])
                 image = Image.fromarray(np.array(arr*255.0, dtype=np.byte), "RGB")
+            else:
+                im_data = np.array(image.convert("RGBA"))
+                # Obtain alpha masks if available.
+                if im_data.shape[2] == 4:
+                    gt_alpha_mask = torch.tensor(im_data[:, :, 3] / 255.0).unsqueeze(0)
             orig_w, orig_h = image.size
             downscale_factor = 1
             if image_resolution in [1, 2, 4, 8]:
@@ -129,7 +135,7 @@ def load_gs_cameras(source_path, gs_output_path, image_resolution=1,
             image_height, image_width = round(height/downscale_factor), round(width/downscale_factor)
         
         gs_camera = GSCamera(
-            colmap_id=id, image=gt_image, gt_alpha_mask=None,
+            colmap_id=id, image=gt_image, gt_alpha_mask=gt_alpha_mask,
             R=R, T=T, FoVx=fov_x, FoVy=fov_y,
             image_name=name, uid=id,
             image_height=image_height, image_width=image_width,)
@@ -176,6 +182,7 @@ class GSCamera(torch.nn.Module):
         self.FoVx = FoVx
         self.FoVy = FoVy
         self.image_name = image_name
+        self.alpha_mask = gt_alpha_mask
 
         try:
             self.data_device = torch.device(data_device)
@@ -195,10 +202,10 @@ class GSCamera(torch.nn.Module):
             self.image_width = self.original_image.shape[2]
             self.image_height = self.original_image.shape[1]
 
-            if gt_alpha_mask is not None:
-                self.original_image *= gt_alpha_mask.to(self.data_device)
-            else:
-                self.original_image *= torch.ones((1, self.image_height, self.image_width), device=self.data_device)
+            # if gt_alpha_mask is not None:
+            #     self.original_image *= gt_alpha_mask.to(self.data_device)
+            # else:
+            self.original_image *= torch.ones((1, self.image_height, self.image_width), device=self.data_device)
 
         self.zfar = 100.0  # TODO: Increase value
         self.znear = 0.01
