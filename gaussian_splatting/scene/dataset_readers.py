@@ -132,11 +132,14 @@ def fetchPly(path, points=int(150e3)):
     if len(plydata['vertex']) == 0:
         # TODO: If this doesn't work, run colmap sparse on images with fixed camera
         # poses, see https://colmap.github.io/faq.html#reconstruct-sparse-dense-model-from-known-camera-poses
-        # Initialize a random point cloud.
-        print("Empty point cloud, generating random points for initialization.")
-        xyz = np.random.random((points, 3))*2.0 - 1.0
-        vertices = np.array([tuple(x) for x in xyz], dtype=[('x', 'float'), ('y', 'float'), ('z', 'float')])
-        return BasicPointCloud(points=xyz, colors=np.zeros_like(xyz), normals=np.zeros_like(xyz))
+    
+        num_pts = 100_000
+        print(f"Generating random point cloud ({num_pts})...")
+        
+        # We create random points inside the bounds of the synthetic Blender scenes
+        xyz = np.random.random((num_pts, 3)) * 2.6 - 1.3
+        shs = np.random.random((num_pts, 3)) / 255.0
+        return BasicPointCloud(points=xyz, colors=SH2RGB(shs), normals=np.zeros((num_pts, 3)))
 
     vertices = plydata['vertex'] if len(plydata['vertex']) < points else np.random.choice(plydata['vertex'], points)
     positions = np.vstack([vertices['x'], vertices['y'], vertices['z']]).T
