@@ -97,6 +97,12 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             alpha_mask = viewpoint_cam.alpha_mask.cuda()
             gt_image = gt_image * alpha_mask + bg.view(3, 1, 1) * (1.0 - alpha_mask)
 
+        # Exclude masked pixels from the loss.
+        mask = viewpoint_cam.is_masked
+        if mask is not None:
+            mask = mask.cuda()
+            gt_image[mask] = image.detach()[mask]
+
         # Loss
         Ll1 = l1_loss(image, gt_image)
         loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image))

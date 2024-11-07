@@ -30,7 +30,9 @@ class CameraInfo(NamedTuple):
     FovY: np.array
     FovX: np.array
     image: np.array
+    mask: np.array
     image_path: str
+    mask_path: str
     image_name: str
     width: int
     height: int
@@ -65,8 +67,9 @@ def getNerfppNorm(cam_info):
 
     return {"translate": translate, "radius": radius}
 
-def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
+def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder, masks_folder):
     cam_infos = []
+    mask_count = 0
     for idx, key in enumerate(cam_extrinsics):
         sys.stdout.write('\r')
         # the exact output you're looking for:
@@ -98,18 +101,53 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
         image_name = os.path.basename(image_path).split(".")[0]
         image = Image.open(image_path)
 
-        cam_info = CameraInfo(uid=uid, R=R, T=T, FovY=FovY, FovX=FovX, image=image,
-                              image_path=image_path, image_name=image_name, width=width, height=height)
+        mask = None
+        mask_path = None
+        if masks_folder is not None and masks_folder != "":
+            possible_mask_path = os.path.join(masks_folder, "{}".format(extr.name))
+            if os.path.exists(possible_mask_path):
+                mask = Image.open(possible_mask_path)
+                assert mask.size == image.size, "image({}) dimension {} doesn't match to the mask({}) {}".format(
+                    image_name,
+                    image.size,
+                    possible_mask_path,
+                    mask.size,
+                )
+                mask_path = possible_mask_path
+                mask_count += 1
+
+        cam_info = CameraInfo(uid=uid, R=R, T=T, FovY=FovY, FovX=FovX, image=image, mask=mask,
+                              image_path=image_path, mask_path=mask_path, image_name=image_name, width=width, height=height)
         cam_infos.append(cam_info)
+
+        if masks_folder != "":
+            sys.stdout.write('\n')
+            sys.stdout.write("Read {} masks".format(mask_count))
+
     sys.stdout.write('\n')
     return cam_infos
 
-def fetchPly(path):
+def fetchPly(path, points=int(150e3)): 
     plydata = PlyData.read(path)
-    vertices = plydata['vertex']
+    if len(plydata['vertex']) == 0:
+        # TODO: If this doesn't work, run colmap sparse on images with fixed camera
+        # poses, see https://colmap.github.io/faq.html#reconstruct-sparse-dense-model-from-known-camera-poses
+        # Initialize a random point cloud.
+        print("Empty point cloud, generating random points for initialization.")
+        xyz = np.random.random((points, 3))*2.0 - 1.0
+        vertices = np.array([tuple(x) for x in xyz], dtype=[('x', 'float'), ('y', 'float'), ('z', 'float')])
+        return BasicPointCloud(points=xyz, colors=np.zeros_like(xyz), normals=np.zeros_like(xyz))
+
+    vertices = plydata['vertex'] if len(plydata['vertex']) < points else np.random.choice(plydata['vertex'], points)
     positions = np.vstack([vertices['x'], vertices['y'], vertices['z']]).T
-    colors = np.vstack([vertices['red'], vertices['green'], vertices['blue']]).T / 255.0
-    normals = np.vstack([vertices['nx'], vertices['ny'], vertices['nz']]).T
+    try:
+        colors = np.vstack([vertices['red'], vertices['green'], vertices['blue']]).T / 255.0
+    except:
+        colors = np.zeros_like(positions)
+    try:
+        normals = np.vstack([vertices['nx'], vertices['ny'], vertices['nz']]).T
+    except:
+        normals = np.zeros_like(positions)
     return BasicPointCloud(points=positions, colors=colors, normals=normals)
 
 def storePly(path, xyz, rgb):
@@ -129,20 +167,26 @@ def storePly(path, xyz, rgb):
     ply_data = PlyData([vertex_element])
     ply_data.write(path)
 
-def readColmapSceneInfo(path, images, eval, llffhold=8):
+def readColmapSceneInfo(path, images, eval, llffhold=8, masks=None):
+    sparse_model_dir = os.path.join(path, "sparse", "0")
+    if os.path.exists(sparse_model_dir) is False:
+        sparse_model_dir = os.path.join(path, "sparse")
     try:
-        cameras_extrinsic_file = os.path.join(path, "sparse/0", "images.bin")
-        cameras_intrinsic_file = os.path.join(path, "sparse/0", "cameras.bin")
+        cameras_extrinsic_file = os.path.join(sparse_model_dir, "images.bin")
+        cameras_intrinsic_file = os.path.join(sparse_model_dir, "cameras.bin")
         cam_extrinsics = read_extrinsics_binary(cameras_extrinsic_file)
         cam_intrinsics = read_intrinsics_binary(cameras_intrinsic_file)
     except:
-        cameras_extrinsic_file = os.path.join(path, "sparse/0", "images.txt")
-        cameras_intrinsic_file = os.path.join(path, "sparse/0", "cameras.txt")
+        cameras_extrinsic_file = os.path.join(sparse_model_dir, "images.txt")
+        cameras_intrinsic_file = os.path.join(sparse_model_dir, "cameras.txt")
         cam_extrinsics = read_extrinsics_text(cameras_extrinsic_file)
         cam_intrinsics = read_intrinsics_text(cameras_intrinsic_file)
 
     reading_dir = "images" if images == None else images
-    cam_infos_unsorted = readColmapCameras(cam_extrinsics=cam_extrinsics, cam_intrinsics=cam_intrinsics, images_folder=os.path.join(path, reading_dir))
+    cam_infos_unsorted = readColmapCameras(
+        cam_extrinsics=cam_extrinsics, cam_intrinsics=cam_intrinsics,
+        images_folder=os.path.join(path, reading_dir), masks_folder=masks
+    )
     cam_infos = sorted(cam_infos_unsorted.copy(), key = lambda x : x.image_name)
 
     if eval:
@@ -154,9 +198,9 @@ def readColmapSceneInfo(path, images, eval, llffhold=8):
 
     nerf_normalization = getNerfppNorm(train_cam_infos)
 
-    ply_path = os.path.join(path, "sparse/0/points3D.ply")
-    bin_path = os.path.join(path, "sparse/0/points3D.bin")
-    txt_path = os.path.join(path, "sparse/0/points3D.txt")
+    ply_path = os.path.join(sparse_model_dir, "points3D.ply")
+    bin_path = os.path.join(sparse_model_dir, "points3D.bin")
+    txt_path = os.path.join(sparse_model_dir, "points3D.txt")
     if not os.path.exists(ply_path):
         print("Converting point3d.bin to .ply, will happen only the first time you open the scene.")
         try:

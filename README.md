@@ -250,6 +250,13 @@ You can run the following single script to optimize a full Gaussian Frosting mod
 python train_full_pipeline.py -s <path to COLMAP dataset> --gaussians_in_frosting 2_000_000 -r <"dn_consistency", "density" or "sdf"> --use_occlusion_culling False --export_obj True
 ```
 
+Training with masks (binary masks where masked pixels are not used for training). Also
+trains with alpha-transparent training if an alpha channel is specified.
+```shell
+python train_full_pipeline.py -s data/mustard -r "dn_consistency" --high_poly True --export_obj True --white_background False --masks data/mustard/binary_masks/
+```
+
+
 You can choose the number of Gaussians to use in the Frosting layer with the `--gaussians_in_frosting` argument, depending on the complexity of the scene or the performance of your GPU. Using `2_000_000` Gaussians is a good trade-off for most scenes, but you can try with `5_000_000` Gaussians for optimal quality.
 
 You can also choose the regularization method with the `-r` argument, which can be `"dn_consistency"`, `"density"` or `"sdf"`. We recommend using the newer `"dn_consistency"` regularization for best quality meshes, but the results presented in the paper were obtained with the `"density"` regularization for object-centered scenes and `"sdf"` for scenes with a challenging background, such as the Mip-NeRF 360 dataset.

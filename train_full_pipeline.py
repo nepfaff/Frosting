@@ -115,7 +115,9 @@ if __name__ == "__main__":
 
     # GPU
     parser.add_argument('--gpu', type=int, default=0, help='Index of GPU device to use.')
-    parser.add_argument('--white_background', type=str2bool, default=False, help='Use a white background instead of black.')
+    parser.add_argument('--white_background', type=str2bool, default=False, help='Use a white background instead of black.')\
+    
+    parser.add_argument('--masks', type=str, default=None, help='Path to the masks to use for the scene.')
 
     # Parse arguments
     args = parser.parse_args()
@@ -150,6 +152,7 @@ if __name__ == "__main__":
 
         # Trains a 3DGS scene for 7k iterations
         white_background_str = '-w ' if args.white_background else ''
+        masks_str = f"--masks {args.masks}" if args.masks is not None else ""
         # safety_command = " MKL_SERVICE_FORCE_INTEL=1"
         safety_command = ""  # TODO: Investigate why the MKL_SERVICE_FORCE_INTEL=1 flag is needed
         os.system(
@@ -157,6 +160,7 @@ if __name__ == "__main__":
                 -s {args.scene_path} \
                 -m {gs_checkpoint_dir} \
                 {white_background_str}\
+                {masks_str} \
                 --iterations 7_000"
         )
     else:
