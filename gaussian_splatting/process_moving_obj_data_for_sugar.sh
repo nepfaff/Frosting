@@ -53,4 +53,7 @@ python gaussian_splatting/bundleSdf_to_colmap.py \
     --data_dir ${OUTPUT_DIR} \
     --output_dir ${OUTPUT_DIR}
 
+echo "Computing an initial point cloud using COLMAP."
+bash gaussian_splatting/compute_pcd_init.sh ${OUTPUT_DIR}
+
 echo "Done."
