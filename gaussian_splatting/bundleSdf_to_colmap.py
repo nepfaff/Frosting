@@ -1,7 +1,6 @@
 import numpy as np
 import os
 import glob
-from PIL import Image
 from scipy.spatial.transform import Rotation as R
 import shutil
 import argparse
@@ -32,12 +31,13 @@ def main():
     params = [fx, fy, cx, cy]
 
     # Get list of image files
-    image_dir = os.path.join(data_dir, 'images_dino_sampled')
+    image_dir = os.path.join(data_dir, 'images')
     image_files = sorted(glob.glob(os.path.join(image_dir, '*.png')))
     if not image_files:
         raise FileNotFoundError(f'No images found in directory: {image_dir}')
 
     # Get image size from the first image
+    from PIL import Image
     with Image.open(image_files[0]) as img:
         width, height = img.size
 
@@ -63,26 +63,25 @@ def main():
             image_id = idx + 1
             image_name = os.path.basename(img_path)
             
-            # Read camera-to-world transformation
+            # Read world-to-camera transformation directly from ob_in_cam (X_CW)
             pose_idx = os.path.splitext(image_name)[0]  # Get '000000' from '000000.png'
-            pose_path = os.path.join(data_dir, 'ob_in_cam', f'{pose_idx}.txt')
+            pose_path = os.path.join(data_dir, 'poses', f'{pose_idx}.txt')
             if not os.path.exists(pose_path):
                 raise FileNotFoundError(f'Pose file not found: {pose_path}')
-            cam_to_world = np.loadtxt(pose_path)  # Shape (4, 4)
+            X_CW = np.loadtxt(pose_path)  # Shape (4, 4)
 
-            # Invert to get world-to-camera transformation
-            world_to_cam = np.linalg.inv(cam_to_world)
-
-            # Extract rotation matrix and translation vector
-            rotation_matrix = world_to_cam[:3, :3]
-            translation_vector = world_to_cam[:3, 3]
+            # Extract rotation and translation directly
+            R_CW = X_CW[:3, :3]
+            p_CW = X_CW[:3, 3]
 
             # Convert rotation matrix to quaternion
-            rot = R.from_matrix(rotation_matrix)
+            rot = R.from_matrix(R_CW)
             quat = rot.as_quat()  # Returns [qx, qy, qz, qw]
             qx, qy, qz, qw = quat
             # COLMAP expects [qw, qx, qy, qz]
-            f.write(f'{image_id} {qw} {qx} {qy} {qz} {translation_vector[0]} {translation_vector[1]} {translation_vector[2]} {camera_id} {image_name}\n')
+
+            # Write to images.txt
+            f.write(f'{image_id} {qw} {qx} {qy} {qz} {p_CW[0]} {p_CW[1]} {p_CW[2]} {camera_id} {image_name}\n')
 
             # Write empty line for 2D points (since we have none)
             f.write('\n')
@@ -94,12 +93,13 @@ def main():
         f.write('#   POINT3D_ID, X, Y, Z, R, G, B, ERROR, TRACK[]\n')
         f.write('\n')
 
-    # Copy images to images directory
-    images_output_dir = os.path.join(output_dir, 'images')
-    os.makedirs(images_output_dir, exist_ok=True)
+    if not data_dir == output_dir:
+        # Copy images to images directory
+        images_output_dir = os.path.join(output_dir, 'images')
+        os.makedirs(images_output_dir, exist_ok=True)
 
-    for img_path in image_files:
-        shutil.copy(img_path, images_output_dir)
+        for img_path in image_files:
+            shutil.copy(img_path, images_output_dir)
 
     print('Conversion to COLMAP format completed successfully.')
 

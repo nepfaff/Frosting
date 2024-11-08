@@ -9,19 +9,28 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 
+import json
 import os
 import sys
-from PIL import Image
-from typing import NamedTuple
-from scene.colmap_loader import read_extrinsics_text, read_intrinsics_text, qvec2rotmat, \
-    read_extrinsics_binary, read_intrinsics_binary, read_points3D_binary, read_points3D_text
-from utils.graphics_utils import getWorld2View2, focal2fov, fov2focal
-import numpy as np
-import json
 from pathlib import Path
+from typing import NamedTuple
+
+import numpy as np
+from PIL import Image
 from plyfile import PlyData, PlyElement
-from utils.sh_utils import SH2RGB
+from scene.colmap_loader import (
+    qvec2rotmat,
+    read_extrinsics_binary,
+    read_extrinsics_text,
+    read_intrinsics_binary,
+    read_intrinsics_text,
+    read_points3D_binary,
+    read_points3D_text,
+)
 from scene.gaussian_model import BasicPointCloud
+from utils.graphics_utils import focal2fov, fov2focal, getWorld2View2
+from utils.sh_utils import SH2RGB
+
 
 class CameraInfo(NamedTuple):
     uid: int
@@ -139,7 +148,11 @@ def fetchPly(path, points=int(150e3)):
         # We create random points inside the bounds of the synthetic Blender scenes
         xyz = np.random.random((num_pts, 3)) * 2.6 - 1.3
         shs = np.random.random((num_pts, 3)) / 255.0
+        
+        storePly(path, xyz, SH2RGB(shs) * 255)
+        
         return BasicPointCloud(points=xyz, colors=SH2RGB(shs), normals=np.zeros((num_pts, 3)))
+
 
     vertices = plydata['vertex'] if len(plydata['vertex']) < points else np.random.choice(plydata['vertex'], points)
     positions = np.vstack([vertices['x'], vertices['y'], vertices['z']]).T
