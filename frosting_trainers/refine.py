@@ -523,6 +523,8 @@ def refined_training(args):
             # Exclude masked pixels from the loss.
             mask = nerfmodel.get_mask(camera_indices=camera_indices, to_cuda=True)
             if mask is not None:
+                if pred_rgb.shape[0] == 1:
+                    mask = mask[None]
                 gt_rgb[mask] = pred_rgb.detach()[mask]
 
             # Reshape for loss computation.

@@ -1,6 +1,7 @@
 import os
 import json
 
+import PIL
 import numpy as np
 import torch
 from PIL import Image
@@ -145,9 +146,13 @@ def load_gs_cameras(source_path,masks_folder, gs_output_path, image_resolution=1
                     possible_mask_path,
                     mask.size,
                 )
+                resized_mask = PILtoTorch(mask, resolution)
+                if resized_mask.shape[0] != 1:
+                    resized_mask = resized_mask[:1, ...]
+                resized_mask[resized_mask > 0] = 1.0
         
         gs_camera = GSCamera(
-            colmap_id=id, image=gt_image,mask=mask, gt_alpha_mask=gt_alpha_mask,
+            colmap_id=id, image=gt_image,mask=resized_mask, gt_alpha_mask=gt_alpha_mask,
             R=R, T=T, FoVx=fov_x, FoVy=fov_y,
             image_name=name, uid=id,
             image_height=image_height, image_width=image_width, data_device="cpu")
