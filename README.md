@@ -235,12 +235,22 @@ cd ../
 
 ### Preparing data with COLMAP
 
+#### For static scenes with sufficient texture
+
+See `gaussian_splatting/convert.py` or do it manually:
+
 ```bash
 colmap automatic_reconstructor --workspace_path $DATASET_PATH \
 --image_path $DATASET_PATH/images --camera_model PINHOLE
 ```
 Note that we require `PINHOLE` camera model. We can stop COLMAP after the sparse
 reconstruction phase.
+
+#### For BundleSDF data
+
+```bash
+bash gaussian_splatting/process_moving_obj_data_for_sugar.sh $DATASET_PATH ${DATASET_PATH}_converted
+```
 
 ### Training from scratch
 

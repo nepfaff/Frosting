@@ -3,12 +3,11 @@
 # Script for pre-processing the moving object/ static camera data for NerfStudio.
 # The input dir should have the following structure:
 # - input_dir/
-#   - cam_K.txt
-#   - depth/
-#   - gripper_masks/
-#   - masks/
-#   - ob_in_cam/
-#   - rgb/
+#   - cam_K.txt         # Camera intrinsic parameters
+#   - gripper_masks/    # Masks for the gripper
+#   - masks/            # Masks for the object + gripper
+#   - ob_in_cam/        # Poses of the object in the camera frame (X_CO)
+#   - rgb/              # RGB images
 
 # The output will contain the COLMAP data format for SuGAR.
 
