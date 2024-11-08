@@ -24,6 +24,7 @@ def extract_mesh_and_texture_from_frosting(args):
     
     # Data
     source_path = args.scene_path
+    mask_path = args.mask_path
     use_eval_split = args.eval
     use_white_background = args.white_background
     n_skip_images_for_eval_split = 8
@@ -55,6 +56,8 @@ def extract_mesh_and_texture_from_frosting(args):
     CONSOLE.print("\n-----Parsed parameters-----")
     CONSOLE.print("Source path:", source_path)
     CONSOLE.print("   > Content:", len(os.listdir(source_path)))
+    CONSOLE.print("Mask path:", mask_path)
+    CONSOLE.print("   > Content:", len(os.listdir(mask_path)))
     CONSOLE.print("Gaussian Splatting checkpoint path:", gs_checkpoint_path)
     CONSOLE.print("   > Content:", len(os.listdir(gs_checkpoint_path)))
     CONSOLE.print("Frosting checkpoint path:", frosting_path)
@@ -78,6 +81,7 @@ def extract_mesh_and_texture_from_frosting(args):
         CONSOLE.print("Performing train/eval split...")
     nerfmodel = GaussianSplattingWrapper(
         source_path=source_path,
+        mask_path=mask_path,
         output_path=gs_checkpoint_path,
         iteration_to_load=iteration_to_load,
         load_gt_images=True,

@@ -88,6 +88,7 @@ def extract_shell_base_from_coarse_sugar(args):
     
     # Vanilla 3DGS data
     source_path = args.scene_path
+    mask_path = args.mask_path
     gs_checkpoint_path = args.checkpoint_path
     iteration_to_load = args.iteration_to_load
     use_train_test_split = args.eval
@@ -148,6 +149,7 @@ def extract_shell_base_from_coarse_sugar(args):
             
     CONSOLE.print("-----Parameters-----")
     CONSOLE.print("Source path:", source_path)
+    CONSOLE.print("Mask path:", mask_path)
     CONSOLE.print("Gaussian Splatting Checkpoint path:", gs_checkpoint_path)
     CONSOLE.print("Coarse model Checkpoint path:", sugar_checkpoint_path)
     CONSOLE.print("Shell output path:", mesh_output_dir)
@@ -172,6 +174,7 @@ def extract_shell_base_from_coarse_sugar(args):
     CONSOLE.print(f"Loading the initial 3DGS model from path {gs_checkpoint_path}...")
     nerfmodel = GaussianSplattingWrapper(
         source_path=source_path,
+        mask_path=mask_path,
         output_path=gs_checkpoint_path,
         iteration_to_load=iteration_to_load,
         load_gt_images=False,

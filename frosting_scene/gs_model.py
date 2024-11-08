@@ -73,6 +73,7 @@ class GaussianSplattingWrapper:
     """
     def __init__(self, 
                  source_path: str,
+                 mask_path: str,
                  output_path: str,
                  iteration_to_load:int=30_000,
                  model_params: ModelParams=None,
@@ -131,6 +132,7 @@ class GaussianSplattingWrapper:
         
         cam_list = load_gs_cameras(
             source_path=source_path,
+            masks_folder=mask_path,
             gs_output_path=output_path,
             load_gt_images=load_gt_images,
             white_background=white_background,
@@ -234,6 +236,22 @@ class GaussianSplattingWrapper:
         if to_cuda:
             gt_image = gt_image.cuda()
         return gt_image.permute(1, 2, 0)
+    
+    def get_mask(self, camera_indices:int, to_cuda=False):
+        mask = self.cam_list[camera_indices].is_masked
+        if mask is None:
+            return None
+        if to_cuda:
+            mask = mask.cuda()
+        return mask.permute(1, 2, 0)
+    
+    def get_alpha_mask(self, camera_indices:int, to_cuda=False):
+        mask = self.cam_list[camera_indices].alpha_mask
+        if mask is None:
+            return None
+        if to_cuda:
+            mask = mask.cuda()
+        return mask.permute(1, 2, 0)
     
     def get_test_gt_image(self, camera_indices:int, to_cuda=False):
         """Returns the ground truth image corresponding to the test camera at the given index.

@@ -208,5 +208,6 @@ if __name__ == "__main__":
             --refinement_time {args.refinement_time} \
             --eval {args.eval} \
             --gpu {args.gpu} \
-            --white_background {args.white_background}"
+            --white_background {args.white_background} \
+            {masks_str}"
     )

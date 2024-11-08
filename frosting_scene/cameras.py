@@ -12,7 +12,7 @@ from frosting_utils.graphics_utils import focal2fov, fov2focal, getWorld2View2, 
 from frosting_utils.general_utils import PILtoTorch
 
 
-def load_gs_cameras(source_path, gs_output_path, image_resolution=1, 
+def load_gs_cameras(source_path,masks_folder, gs_output_path, image_resolution=1, 
                     load_gt_images=True, max_img_size=1920, white_background=False,
                     remove_indices=[]):
     """Loads Gaussian Splatting camera parameters from a COLMAP reconstruction.
@@ -133,9 +133,21 @@ def load_gs_cameras(source_path, gs_output_path, image_resolution=1,
                 additional_downscale_factor = max(height, width) / max_img_size
                 downscale_factor = additional_downscale_factor * downscale_factor
             image_height, image_width = round(height/downscale_factor), round(width/downscale_factor)
+
+        mask = None
+        if masks_folder is not None and masks_folder != "":
+            possible_mask_path = os.path.join(masks_folder, name + extension)
+            if os.path.exists(possible_mask_path):
+                mask = Image.open(possible_mask_path)
+                assert mask.size == image.size, "image({}) dimension {} doesn't match to the mask({}) {}".format(
+                    name,
+                    image.size,
+                    possible_mask_path,
+                    mask.size,
+                )
         
         gs_camera = GSCamera(
-            colmap_id=id, image=gt_image, gt_alpha_mask=gt_alpha_mask,
+            colmap_id=id, image=gt_image,mask=mask, gt_alpha_mask=gt_alpha_mask,
             R=R, T=T, FoVx=fov_x, FoVy=fov_y,
             image_name=name, uid=id,
             image_height=image_height, image_width=image_width, data_device="cpu")
@@ -148,7 +160,7 @@ def load_gs_cameras(source_path, gs_output_path, image_resolution=1,
 class GSCamera(torch.nn.Module):
     """Class to store Gaussian Splatting camera parameters.
     """
-    def __init__(self, colmap_id, R, T, FoVx, FoVy, image, gt_alpha_mask,
+    def __init__(self, colmap_id, R, T, FoVx, FoVy, image,mask, gt_alpha_mask,
                  image_name, uid,
                  trans=np.array([0.0, 0.0, 0.0]), scale=1.0, data_device = "cuda",
                  image_height=None, image_width=None,
@@ -201,6 +213,12 @@ class GSCamera(torch.nn.Module):
             self.original_image = image.clamp(0.0, 1.0).to(self.data_device)
             self.image_width = self.original_image.shape[2]
             self.image_height = self.original_image.shape[1]
+
+            self.raw_mask = mask
+            self.is_masked = None
+
+            if mask is not None:
+                self.is_masked = (mask == 0).expand(*image.shape)  # True represent masked pixels
 
             # if gt_alpha_mask is not None:
             #     self.original_image *= gt_alpha_mask.to(self.data_device)

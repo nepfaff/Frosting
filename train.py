@@ -129,6 +129,8 @@ if __name__ == "__main__":
     parser.add_argument('--gpu', type=int, default=0, help='Index of GPU device to use.')
     parser.add_argument('--white_background', type=str2bool, default=False, help='Use a white background instead of black.')
 
+    parser.add_argument("--masks", type=str, default=None, help="Path to the masks to use for the scene.")
+
     # Parse arguments
     args = parser.parse_args()
     if args.low_poly:
@@ -153,6 +155,7 @@ if __name__ == "__main__":
     coarse_args = AttrDict({
         'checkpoint_path': args.checkpoint_path,
         'scene_path': args.scene_path,
+        "mask_path": args.masks,
         'iteration_to_load': args.iteration_to_load,
         'output_dir': None,
         'eval': args.eval,
@@ -170,10 +173,10 @@ if __name__ == "__main__":
     else:
         raise ValueError(f'Unknown regularization type: {args.regularization_type}')
     
-    
     # ----- Extract shell base from coarse SuGaR -----
     shell_base_args = AttrDict({
         'scene_path': args.scene_path,
+        "mask_path": args.masks,
         'checkpoint_path': args.checkpoint_path,
         'iteration_to_load': args.iteration_to_load,
         'coarse_model_path': coarse_sugar_path,
@@ -194,11 +197,11 @@ if __name__ == "__main__":
         'use_vanilla_3dgs': False,
     })
     shell_base_path = extract_shell_base_from_coarse_sugar(shell_base_args)[0]
-    
-    
+
     # ----- Optimize Frosting -----
     frosting_args = AttrDict({
         'scene_path': args.scene_path,
+        "mask_path": args.masks,
         'checkpoint_path': args.checkpoint_path,
         'sugar_path': coarse_sugar_path,
         'mesh_path': shell_base_path,

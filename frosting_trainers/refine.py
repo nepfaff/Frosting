@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from pyparsing import C
 import torch
 import open3d as o3d
 from pytorch3d.loss import mesh_laplacian_smoothing, mesh_normal_consistency
@@ -125,6 +126,7 @@ def refined_training(args):
     
     # Data parameters
     source_path = args.scene_path
+    mask_path = args.mask_path
     gs_checkpoint_path = args.checkpoint_path
     sugar_model_path = args.sugar_path
     shell_base_to_bind_path = args.mesh_path
@@ -205,6 +207,8 @@ def refined_training(args):
     CONSOLE.print("-----Parsed parameters-----")
     CONSOLE.print("Source path:", source_path)
     CONSOLE.print("   > Content:", len(os.listdir(source_path)))
+    CONSOLE.print("Mask path:", mask_path)
+    CONSOLE.print("   > Content:", len(os.listdir(mask_path)))
     CONSOLE.print("Gaussian Splatting checkpoint path:", gs_checkpoint_path)
     CONSOLE.print("   > Content:", len(os.listdir(gs_checkpoint_path)))
     CONSOLE.print("Sugar model path:", sugar_model_path)
@@ -264,6 +268,7 @@ def refined_training(args):
         CONSOLE.print("Performing train/eval split...")
     nerfmodel = GaussianSplattingWrapper(
         source_path=source_path,
+        mask_path=mask_path,
         output_path=gs_checkpoint_path,
         iteration_to_load=iteration_to_load,
         load_gt_images=True,
@@ -480,6 +485,11 @@ def refined_training(args):
             end_idx = min(i+train_num_images_per_batch, train_num_images)
             
             camera_indices = shuffled_idx[start_idx:end_idx]
+
+            # Composes the prediction with the background.
+            alpha_mask = nerfmodel.get_alpha_mask(camera_indices=camera_indices, to_cuda=True)
+            if alpha_mask is not None:
+                bg_tensor = torch.rand((3), device="cuda")
             
             # Computing rgb predictions
             depth_for_filtering = None
@@ -500,13 +510,25 @@ def refined_training(args):
                 face_idx_to_render=face_idx_to_render,
             )
             pred_rgb = outputs.view(-1, frosting.image_height, frosting.image_width, 3)
-            pred_rgb = pred_rgb.transpose(-1, -2).transpose(-2, -3)  # TODO: Change for torch.permute
             
             # Gather rgb ground truth
             gt_image = nerfmodel.get_gt_image(camera_indices=camera_indices, to_cuda=True)           
             gt_rgb = gt_image.view(-1, frosting.image_height, frosting.image_width, 3)
+
+            # Compose the GT image with the background.
+            if alpha_mask is not None:
+                gt_rgb = gt_rgb * alpha_mask + bg_tensor.view(1, 1, 1, 3) * (1.0 - alpha_mask)
+                gt_rgb = gt_rgb.to(pred_rgb.dtype)
+
+            # Exclude masked pixels from the loss.
+            mask = nerfmodel.get_mask(camera_indices=camera_indices, to_cuda=True)
+            if mask is not None:
+                gt_rgb[mask] = pred_rgb.detach()[mask]
+
+            # Reshape for loss computation.
+            pred_rgb = pred_rgb.transpose(-1, -2).transpose(-2, -3)  # TODO: Change for torch.permute
             gt_rgb = gt_rgb.transpose(-1, -2).transpose(-2, -3)
-                
+
             # Compute loss 
             loss = loss_fn(pred_rgb, gt_rgb)
             

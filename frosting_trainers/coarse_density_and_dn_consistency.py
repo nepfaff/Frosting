@@ -323,6 +323,7 @@ def coarse_training_with_density_regularization_and_dn_consistency(args):
             args.output_dir = os.path.join("./output/coarse", args.scene_path.split("/")[-2])
             
     source_path = args.scene_path
+    mask_path = args.mask_path
     gs_checkpoint_path = args.checkpoint_path
     iteration_to_load = args.iteration_to_load    
     
@@ -345,6 +346,8 @@ def coarse_training_with_density_regularization_and_dn_consistency(args):
     CONSOLE.print("-----Parsed parameters-----")
     CONSOLE.print("Source path:", source_path)
     CONSOLE.print("   > Content:", len(os.listdir(source_path)))
+    CONSOLE.print("Mask path:", mask_path)
+    CONSOLE.print("   > Content:", len(os.listdir(mask_path)))
     CONSOLE.print("Gaussian Splatting checkpoint path:", gs_checkpoint_path)
     CONSOLE.print("   > Content:", len(os.listdir(gs_checkpoint_path)))
     CONSOLE.print("SUGAR checkpoint path:", sugar_checkpoint_path)
@@ -376,6 +379,7 @@ def coarse_training_with_density_regularization_and_dn_consistency(args):
         CONSOLE.print("Performing train/eval split...")
     nerfmodel = GaussianSplattingWrapper(
         source_path=source_path,
+        mask_path=mask_path,
         output_path=gs_checkpoint_path,
         iteration_to_load=iteration_to_load,
         load_gt_images=True,
@@ -592,6 +596,11 @@ def coarse_training_with_density_regularization_and_dn_consistency(args):
             end_idx = min(i+train_num_images_per_batch, train_num_images)
             
             camera_indices = shuffled_idx[start_idx:end_idx]
+
+            # Composes the prediction with the background.
+            alpha_mask = nerfmodel.get_alpha_mask(camera_indices=camera_indices, to_cuda=True)
+            if alpha_mask is not None:
+                bg_tensor = torch.rand((3), device="cuda")
             
             # Computing rgb predictions
             if not no_rendering:
@@ -617,11 +626,22 @@ def coarse_training_with_density_regularization_and_dn_consistency(args):
                 if enforce_entropy_regularization:
                     opacities = outputs['opacities']
                 
-                pred_rgb = pred_rgb.transpose(-1, -2).transpose(-2, -3)  # TODO: Change for torch.permute
-                
                 # Gather rgb ground truth
-                gt_image = nerfmodel.get_gt_image(camera_indices=camera_indices, to_cuda=True)           
+                gt_image = nerfmodel.get_gt_image(camera_indices=camera_indices, to_cuda=True)
                 gt_rgb = gt_image.view(-1, sugar.image_height, sugar.image_width, 3)
+
+                # Compose the GT image with the background.
+                if alpha_mask is not None:
+                    gt_rgb = gt_rgb * alpha_mask + bg_tensor.view(1, 1, 1, 3) * (1.0 - alpha_mask)
+                    gt_rgb = gt_rgb.to(pred_rgb.dtype)
+
+                # Exclude masked pixels from the loss.
+                mask = nerfmodel.get_mask(camera_indices=camera_indices, to_cuda=True)
+                if mask is not None:
+                    gt_rgb[mask] = pred_rgb.detach()[mask]
+
+                # Reshape for loss computation.
+                pred_rgb = pred_rgb.transpose(-1, -2).transpose(-2, -3)  # TODO: Change for torch.permute
                 gt_rgb = gt_rgb.transpose(-1, -2).transpose(-2, -3)
                     
                 # Compute loss 
