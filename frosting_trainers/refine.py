@@ -503,7 +503,7 @@ def refined_training(args):
             pred_rgb = pred_rgb.transpose(-1, -2).transpose(-2, -3)  # TODO: Change for torch.permute
             
             # Gather rgb ground truth
-            gt_image = nerfmodel.get_gt_image(camera_indices=camera_indices)           
+            gt_image = nerfmodel.get_gt_image(camera_indices=camera_indices, to_cuda=True)           
             gt_rgb = gt_image.view(-1, frosting.image_height, frosting.image_width, 3)
             gt_rgb = gt_rgb.transpose(-1, -2).transpose(-2, -3)
                 
