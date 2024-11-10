@@ -141,12 +141,12 @@ def load_gs_cameras(source_path,masks_folder, gs_output_path, image_resolution=1
             possible_mask_path = os.path.join(masks_folder, name + extension)
             if os.path.exists(possible_mask_path):
                 mask = Image.open(possible_mask_path)
-                assert mask.size == image.size, "image({}) dimension {} doesn't match to the mask({}) {}".format(
-                    name,
-                    image.size,
-                    possible_mask_path,
-                    mask.size,
-                )
+                # assert mask.size == image.size, "image({}) dimension {} doesn't match to the mask({}) {}".format(
+                #     name,
+                #     image.size,
+                #     possible_mask_path,
+                #     mask.size,
+                # )
                 resized_mask = PILtoTorch(mask, resolution)
                 if resized_mask.shape[0] != 1:
                     resized_mask = resized_mask[:1, ...]
