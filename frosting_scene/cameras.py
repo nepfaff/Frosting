@@ -134,6 +134,8 @@ def load_gs_cameras(source_path,masks_folder, gs_output_path, image_resolution=1
                 additional_downscale_factor = max(height, width) / max_img_size
                 downscale_factor = additional_downscale_factor * downscale_factor
             image_height, image_width = round(height/downscale_factor), round(width/downscale_factor)
+            # resolution = round(orig_w/(downscale_factor)), round(orig_h/(downscale_factor))
+            resolution = image_width, image_height
 
         mask = None
         resized_mask = None
