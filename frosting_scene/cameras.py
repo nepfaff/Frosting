@@ -136,6 +136,7 @@ def load_gs_cameras(source_path,masks_folder, gs_output_path, image_resolution=1
             image_height, image_width = round(height/downscale_factor), round(width/downscale_factor)
 
         mask = None
+        resized_mask = None
         if masks_folder is not None and masks_folder != "":
             possible_mask_path = os.path.join(masks_folder, name + extension)
             if os.path.exists(possible_mask_path):
