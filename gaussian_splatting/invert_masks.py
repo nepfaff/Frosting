@@ -1,4 +1,5 @@
 import argparse
+import concurrent.futures
 import os
 
 from PIL import Image
@@ -27,11 +28,20 @@ def invert_masks_in_directory(input_dir, output_dir):
     # Get all PNG files in the input directory
     mask_files = [f for f in os.listdir(input_dir) if f.endswith(".png")]
 
-    # Invert each mask and save to the output directory
-    for mask_file in tqdm(mask_files, desc="Inverting masks"):
+    def process_mask(mask_file):
         input_path = os.path.join(input_dir, mask_file)
         output_path = os.path.join(output_dir, mask_file)
         invert_binary_mask(input_path, output_path)
+
+    # Invert each mask and save to the output directory using ThreadPoolExecutor
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        list(
+            tqdm(
+                executor.map(process_mask, mask_files),
+                total=len(mask_files),
+                desc="Inverting masks",
+            )
+        )
 
 
 if __name__ == "__main__":

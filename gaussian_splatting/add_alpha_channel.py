@@ -1,9 +1,11 @@
 #!/bin/python3
 
-"""Script that adds an alpha channel based on binary masks in both .npy and .png formats."""
+"""
+Script that adds an alpha channel based on binary masks in both .npy and .png formats.
+"""
 
 import argparse
-import os
+import concurrent.futures
 
 from pathlib import Path
 
@@ -22,6 +24,21 @@ def load_mask(mask_path):
     else:
         raise ValueError(f"Unsupported mask format: {mask_path.suffix}")
     return mask
+
+
+def process_image(img_path, mask_path, out_dir_path):
+    img = np.asarray(Image.open(img_path).convert("RGB"))
+    mask = load_mask(mask_path)
+
+    # Ensure the mask has the correct shape for concatenation
+    if mask.ndim == 2:
+        mask = mask[:, :, np.newaxis]
+
+    img_w_alpha = np.concatenate((img, mask), axis=-1)
+
+    out_path = out_dir_path / img_path.name
+    img_w_alpha_pil = Image.fromarray(img_w_alpha)
+    img_w_alpha_pil.save(out_path)
 
 
 def main():
@@ -60,23 +77,18 @@ def main():
 
     out_dir_path.mkdir(exist_ok=True)
 
-    for img_path, mask_path in tqdm(
-        zip(image_files, mask_files),
-        total=len(image_files),
-        desc="Adding alpha channel",
-    ):
-        img = np.asarray(Image.open(img_path).convert("RGB"))
-        mask = load_mask(mask_path)
-
-        # Ensure the mask has the correct shape for concatenation
-        if mask.ndim == 2:
-            mask = mask[:, :, np.newaxis]
-
-        img_w_alpha = np.concatenate((img, mask), axis=-1)
-
-        out_path = out_dir_path / img_path.name
-        img_w_alpha_pil = Image.fromarray(img_w_alpha)
-        img_w_alpha_pil.save(out_path)
+    # Use ThreadPoolExecutor to speed up the processing
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        list(
+            tqdm(
+                executor.map(
+                    lambda args: process_image(*args),
+                    zip(image_files, mask_files, [out_dir_path] * len(image_files)),
+                ),
+                total=len(image_files),
+                desc="Adding alpha channel",
+            )
+        )
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import concurrent.futures
 import os
 import shutil  # For copying images
 
@@ -60,14 +61,31 @@ def parse_arguments():
 def load_and_preprocess_images(image_paths, preprocess, device):
     features = []
     valid_image_paths = []
-    for img_path in tqdm(image_paths, desc="Processing images"):
+
+    def process_image(img_path):
         try:
             img = Image.open(img_path).convert("RGB")
             input_tensor = preprocess(img).unsqueeze(0).to(device)
-            features.append(input_tensor)
-            valid_image_paths.append(img_path)
+            return input_tensor, img_path
         except Exception as e:
             print(f"Error processing {img_path}: {e}")
+            return None, None
+
+    # Use ThreadPoolExecutor to speed up image loading and preprocessing
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = list(
+            tqdm(
+                executor.map(process_image, image_paths),
+                total=len(image_paths),
+                desc="Processing images",
+            )
+        )
+
+    for feature, img_path in results:
+        if feature is not None:
+            features.append(feature)
+            valid_image_paths.append(img_path)
+
     if not features:
         raise ValueError("No valid images were found.")
     return torch.cat(features, dim=0), valid_image_paths
@@ -110,17 +128,13 @@ def select_most_dissimilar_images(features, K):
     remaining_indices = set(range(N)) - set(selected_indices)
 
     for _ in tqdm(range(K - 1), "Selecting most dissimilar images"):
-        max_min_distance = -1
         next_index = -1
 
-        for idx in remaining_indices:
-            # Compute the minimal distance to the selected images
-            min_distance = np.min(distance_matrix[idx, selected_indices])
-
-            # Select the image with the maximal minimal distance
-            if min_distance > max_min_distance:
-                max_min_distance = min_distance
-                next_index = idx
+        # Use numpy operations to efficiently find the next index
+        min_distances = np.min(
+            distance_matrix[list(remaining_indices)][:, selected_indices], axis=1
+        )
+        next_index = list(remaining_indices)[np.argmax(min_distances)]
 
         selected_indices.append(next_index)
         remaining_indices.remove(next_index)
@@ -203,8 +217,17 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
 
     # Copy selected images to the output directory
-    for img_path in selected_images:
-        shutil.copy(img_path, args.output_dir)
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        list(
+            tqdm(
+                executor.map(
+                    lambda img_path: shutil.copy(img_path, args.output_dir),
+                    selected_images,
+                ),
+                total=len(selected_images),
+                desc="Copying selected images",
+            )
+        )
 
     print(f"Selected {args.K} most dissimilar images using {args.model.upper()}.")
     print(f"\nSelected images have been saved to '{args.output_dir}' directory.")
