@@ -82,6 +82,7 @@ def extract_mesh_and_texture_from_frosting(args):
     nerfmodel = GaussianSplattingWrapper(
         source_path=source_path,
         mask_path=mask_path,
+        depth_path=None,
         output_path=gs_checkpoint_path,
         iteration_to_load=iteration_to_load,
         load_gt_images=True,

@@ -89,9 +89,13 @@ def extract_shell_base_from_coarse_sugar(args):
     # Vanilla 3DGS data
     source_path = args.scene_path
     mask_path = args.mask_path
+    depth_path = args.depth_path
     gs_checkpoint_path = args.checkpoint_path
     iteration_to_load = args.iteration_to_load
     use_train_test_split = args.eval
+
+    if depth_path is not None and depth_path != "":
+        depth_path = os.path.join(source_path, depth_path)
     
     # Coarse model path
     sugar_checkpoint_path = args.coarse_model_path
@@ -175,6 +179,7 @@ def extract_shell_base_from_coarse_sugar(args):
     nerfmodel = GaussianSplattingWrapper(
         source_path=source_path,
         mask_path=mask_path,
+        depth_path=depth_path,
         output_path=gs_checkpoint_path,
         iteration_to_load=iteration_to_load,
         load_gt_images=False,

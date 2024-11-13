@@ -2330,6 +2330,7 @@ class SuGaR(nn.Module):
         else:
             outputs = {
                 "image": rendered_image.transpose(0, 1).transpose(1, 2),
+                "depth": depth_image.transpose(0, 1).transpose(1, 2),
                 "radii": radii,
                 "viewspace_points": screenspace_points,
             }

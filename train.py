@@ -130,6 +130,7 @@ if __name__ == "__main__":
     parser.add_argument('--white_background', type=str2bool, default=False, help='Use a white background instead of black.')
 
     parser.add_argument("--masks", type=str, default=None, help="Path to the masks to use for the scene.")
+    parser.add_argument("-d", type=str, default=None, help="Path to the depth images.")
 
     # Parse arguments
     args = parser.parse_args()
@@ -156,6 +157,7 @@ if __name__ == "__main__":
         'checkpoint_path': args.checkpoint_path,
         'scene_path': args.scene_path,
         "mask_path": args.masks,
+        "depth_path": args.d,
         'iteration_to_load': args.iteration_to_load,
         'output_dir': None,
         'eval': args.eval,
@@ -177,6 +179,7 @@ if __name__ == "__main__":
     shell_base_args = AttrDict({
         'scene_path': args.scene_path,
         "mask_path": args.masks,
+        "depth_path": args.d,
         'checkpoint_path': args.checkpoint_path,
         'iteration_to_load': args.iteration_to_load,
         'coarse_model_path': coarse_sugar_path,
