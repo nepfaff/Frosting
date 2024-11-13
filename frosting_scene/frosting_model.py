@@ -1461,7 +1461,7 @@ class Frosting(nn.Module):
             sh_degree=sh_deg,
             campos=camera_center,
             prefiltered=False,
-            debug=False
+            debug=False,
         )
     
         rasterizer = GaussianRasterizer(raster_settings=raster_settings)
@@ -1646,7 +1646,7 @@ class Frosting(nn.Module):
         if self.project_gaussians_on_base_mesh:
             scales, quaternions = self.project_gaussians_on_mesh()
         
-        rendered_image, radii = rasterizer(
+        rendered_image, radii, depth_image = rasterizer(
             means3D = positions,
             means2D = means2D,
             shs = shs,

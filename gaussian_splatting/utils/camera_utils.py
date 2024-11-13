@@ -17,10 +17,27 @@ from utils.graphics_utils import fov2focal
 import os
 import torch
 import torchvision.utils
-
+import cv2
 WARNED = False
 
 def loadCam(args, id, cam_info, resolution_scale):
+
+    if cam_info.depth_path != "":
+        try:
+            invdepthmap = cv2.imread(cam_info.depth_path, -1).astype(np.float32) / float(2**16)
+        except FileNotFoundError:
+            print(f"Error: The depth file at path '{cam_info.depth_path}' was not found.")
+            raise
+        except IOError:
+            print(f"Error: Unable to open the image file '{cam_info.depth_path}'. It may be corrupted or an unsupported format.")
+            raise
+        except Exception as e:
+            print(f"An unexpected error occurred when trying to read depth at {cam_info.depth_path}: {e}")
+            raise
+    else:
+        invdepthmap = None
+
+
     orig_w, orig_h = cam_info.image.size
 
     if args.resolution in [1, 2, 4, 8]:
@@ -63,9 +80,9 @@ def loadCam(args, id, cam_info, resolution_scale):
     if resized_image_rgb.shape[0] == 4:
         loaded_mask = resized_image_rgb[3:4, ...]
 
-    return Camera(colmap_id=cam_info.uid, R=cam_info.R, T=cam_info.T, 
-                  FoVx=cam_info.FovX, FoVy=cam_info.FovY, 
-                  image=gt_image, mask=resized_mask, gt_alpha_mask=loaded_mask,
+    return Camera(colmap_id=cam_info.uid, R=cam_info.R, T=cam_info.T, resolution=resolution,
+                  FoVx=cam_info.FovX, FoVy=cam_info.FovY, depth_params=cam_info.depth_params,
+                  image=gt_image, mask=resized_mask, gt_alpha_mask=loaded_mask, invdepthmap=invdepthmap,
                   image_name=cam_info.image_name, uid=id, data_device="cpu")
 
 def cameraList_from_camInfos(cam_infos, resolution_scale, args):

@@ -302,7 +302,7 @@ def extract_shell_base_from_coarse_sugar(args):
                 cameras_to_use = nerfmodel.training_cameras
                     
                 for cam_idx in range(len(nerfmodel.training_cameras)):
-                    if cam_idx % 30 == 0:
+                    if cam_idx % 50 == 0:
                         CONSOLE.print(f"Processing frame {cam_idx}/{len(nerfmodel.training_cameras)}...")
                         for surface_level in surface_levels:
                             CONSOLE.print(f"Current point cloud for level {surface_level} has {len(surface_levels_outputs[surface_level]['points'])} points.")
@@ -591,7 +591,7 @@ def extract_shell_base_from_coarse_sugar(args):
                         
                         # Iterate over all training viewpoints and count the number of times each face is visible
                         for cam_idx in range(len(nerfmodel.training_cameras)):
-                            if cam_idx % 30 == 0:
+                            if cam_idx % 50 == 0:
                                 CONSOLE.print(f"Processing frame {cam_idx}/{len(nerfmodel.training_cameras)}...")
                             p3d_cameras = nerfmodel.training_cameras.p3d_cameras[cam_idx]
                             fragments = rasterizer(p3d_mesh, cameras=p3d_cameras)
@@ -729,7 +729,7 @@ def extract_shell_base_from_coarse_sugar(args):
                 # ---Decimate and clean meshes---
                 CONSOLE.print("\n-----Decimating and cleaning meshes-----")
                 for decimation_target in decimation_targets:
-                    CONSOLE.print("\nProcessing decimation target:", decimation_target)
+                    CONSOLE.print("\nProcessing decimation target triangles:", decimation_target)
                     if decimate_mesh:
                         CONSOLE.print("Decimating foreground mesh...")
                         decimated_o3d_fg_mesh = o3d_fg_mesh.simplify_quadric_decimation(decimation_target)

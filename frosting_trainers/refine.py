@@ -549,18 +549,18 @@ def refined_training(args):
             if iteration==1 or iteration % print_loss_every_n_iterations == 0:
                 CONSOLE.print(f'\n-------------------\nIteration: {iteration}')
                 train_losses.append(loss.detach().item())
-                CONSOLE.print(f"loss: {loss:>7f}  [{iteration:>5d}/{num_iterations:>5d}]",
-                    "computed in", (time.time() - t0) / 60., "minutes.")
-                with torch.no_grad():
-                    for name, param in frosting.named_parameters():
-                        CONSOLE.print(f"> {name}:", "Requires grad:", param.requires_grad)
-                        if param.requires_grad:
-                            CONSOLE.print(
-                                f"     > Min:{param.min().item()}",
-                                f"     > Max:{param.max().item()}",
-                                f"     > Mean:{param.mean().item()}",
-                                f"     > Std:{param.std().item()}"
-                            )
+                # CONSOLE.print(f"loss: {loss:>7f}  [{iteration:>5d}/{num_iterations:>5d}]",
+                #     "computed in", (time.time() - t0) / 60., "minutes.")
+                # with torch.no_grad():
+                #     for name, param in frosting.named_parameters():
+                #         CONSOLE.print(f"> {name}:", "Requires grad:", param.requires_grad)
+                #         if param.requires_grad:
+                #             CONSOLE.print(
+                #                 f"     > Min:{param.min().item()}",
+                #                 f"     > Max:{param.max().item()}",
+                #                 f"     > Mean:{param.mean().item()}",
+                #                 f"     > Std:{param.std().item()}"
+                #             )
                 t0 = time.time()
                 
             # Save model

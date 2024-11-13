@@ -248,8 +248,13 @@ reconstruction phase.
 
 #### For BundleSDF data
 
-```bash
+```shell
 bash gaussian_splatting/process_moving_obj_data_for_sugar.sh $DATASET_PATH ${DATASET_PATH}_converted
+```
+
+Processing depth data:
+```shell
+python gaussian_splatting/utils/make_depth_scales.py --base_dir data/taller_lazy_susan2_converted/ --depths_dir data/taller_lazy_susan2_converted/depth/
 ```
 
 ### Training from scratch
@@ -266,6 +271,17 @@ trains with alpha-transparent training if an alpha channel is specified.
 python train_full_pipeline.py -s data/mustard -r "dn_consistency" --high_poly True --export_obj True --white_background False --masks data/mustard/binary_masks/
 ```
 
+Training with masks and depth.
+```shell
+python train_full_pipeline.py -s data/taller_lazy_susan2_converted/ -r "dn_consistency" --high_poly True --export_obj True --white_background False --masks data/taller_lazy_susan2_converted/gripper_masks/ --depths depth/
+```
+where `depth/` is relative to `data/taller_lazy_susan2_converted/`.
+
+
+Validate that the vanilla GS model trained well:
+```shell
+python gaussian_splatting/render.py --model_path output/vanilla_gs/mustard/ --skip_test
+```
 
 You can choose the number of Gaussians to use in the Frosting layer with the `--gaussians_in_frosting` argument, depending on the complexity of the scene or the performance of your GPU. Using `2_000_000` Gaussians is a good trade-off for most scenes, but you can try with `5_000_000` Gaussians for optimal quality.
 

@@ -13,9 +13,10 @@ import torch
 from torch import nn
 import numpy as np
 from utils.graphics_utils import getWorld2View2, getProjectionMatrix
+import cv2
 
 class Camera(nn.Module):
-    def __init__(self, colmap_id, R, T, FoVx, FoVy, image, mask, gt_alpha_mask,
+    def __init__(self, resolution, colmap_id, R, T, FoVx, FoVy, depth_params, image, invdepthmap, mask, gt_alpha_mask,
                  image_name, uid,
                  trans=np.array([0.0, 0.0, 0.0]), scale=1.0, data_device = "cpu"
                  ):
@@ -51,6 +52,23 @@ class Camera(nn.Module):
         #     self.original_image *= gt_alpha_mask.to(self.data_device)
         # else:
         self.original_image *= torch.ones((1, self.image_height, self.image_width), device=self.data_device)
+
+        self.invdepthmap = None
+        self.depth_reliable = False
+        if invdepthmap is not None and depth_params is not None and depth_params["scale"] > 0:
+            invdepthmapScaled = invdepthmap * depth_params["scale"] + depth_params["offset"]
+            invdepthmapScaled = cv2.resize(invdepthmapScaled, resolution)
+            invdepthmapScaled[invdepthmapScaled < 0] = 0
+            if invdepthmapScaled.ndim != 2:
+                invdepthmapScaled = invdepthmapScaled[..., 0]
+            self.invdepthmap = torch.from_numpy(invdepthmapScaled[None]).to(self.data_device)
+            
+            # if depth_params["scale"] < 0.2 * depth_params["med_scale"] or depth_params["scale"] > 5 * depth_params["med_scale"]: 
+            #     self.depth_mask *= 0
+            # else:
+            #     self.depth_reliable = True
+
+            self.depth_reliable = True
 
         self.zfar = 100.0
         self.znear = 0.01
