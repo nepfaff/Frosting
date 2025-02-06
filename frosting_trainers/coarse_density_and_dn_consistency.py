@@ -695,13 +695,16 @@ def coarse_training_with_density_regularization_and_dn_consistency(args):
                     camera_indices=camera_indices, to_cuda=True
                 )
                 gt_rgb = gt_image.view(-1, sugar.image_height, sugar.image_width, 3)
-                # Gather depth ground truth.
-                gt_invdepth = nerfmodel.get_gt_depth(
-                    camera_indices=camera_indices, to_cuda=True
-                )
-                depth_reliable = nerfmodel.get_depth_reliable(
-                    camera_indices=camera_indices
-                )
+                if depth_path is not None:
+                    # Gather depth ground truth.
+                    gt_invdepth = nerfmodel.get_gt_depth(
+                        camera_indices=camera_indices, to_cuda=True
+                    )
+                    depth_reliable = nerfmodel.get_depth_reliable(
+                        camera_indices=camera_indices
+                    )
+                else:
+                    depth_reliable = False
 
                 # Compose the GT image with the background.
                 if alpha_mask is not None:
